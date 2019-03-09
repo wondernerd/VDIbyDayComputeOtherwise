@@ -13,7 +13,7 @@ Define your paramaters on lines 13 thourgh 26. Hopefully they are self explainit
 
   # Compute Side
   $ComputeVMbaseName = "Compute"  #The base name of compute VMs, a three digit number will be added at the end
-  $ComputeCountFormat = "000"		#The preceding zeros in the compute name, so the 6th VM would be Compute006
+  $ComputeCountFormat = "000"		#The preceding zeros in the compute name, so the 6th VM would be Compute005
   $MaxComputeVMs = 4				#Total Number of Compute VMs in use
   $ComputevGPUtype = "grid_p4-2q"	#Which vGPU is in the Compute VM (later I will detect this)
 
