@@ -4,9 +4,9 @@ Script that provides the logic to do VDI by day and Compute by night (Or wheneve
 This is a fairly easy script to use.
 
 It requires the latest push of my vGPU capacity function here: https://github.com/wondernerd/vGPUCapacity
- Set the path to that file on line 8
+ Set the path to that file on line 11
  
-Define your paramaters on lines 13 thourgh 26. Hopefully they are self explainitory.
+Define your paramaters on lines 16 thourgh 29. Hopefully they are self explainitory.
 <pre>
   # VDI Side
   $SpareVMcapacity = 1			#How many spare VMs should be able to be powered on
