@@ -7,6 +7,7 @@ It requires the latest push of my vGPU capacity function here: https://github.co
  Set the path to that file on line 8
  
 Define your paramaters on lines 13 thourgh 26. Hopefully they are self explainitory.
+<pre>
   # VDI Side
   $SpareVMcapacity = 1			#How many spare VMs should be able to be powered on
 
@@ -20,7 +21,8 @@ Define your paramaters on lines 13 thourgh 26. Hopefully they are self explainit
   $WorkingCluster = "Horizon"		#Name of the cluster that should be 
   $SecondsBetweenScans = 30		#How long will the program wait between scans
   $NumberOfScansToPreform = 10	#How many times should the scan be run 
-  
+</pre>
+
 Once those modifications are done, time to prep the VMware environment
 Remember that unless the compute VMs are desktops this requires that you license the hosts with regular vSphere licensing.
 DO NOT USE VMware Horizon Licensing unless you are positive you meet the requirements.
