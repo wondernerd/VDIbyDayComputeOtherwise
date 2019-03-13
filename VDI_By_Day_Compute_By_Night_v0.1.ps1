@@ -106,3 +106,20 @@ While($ScanCount -le $NumberOfScansToPreform)
 	Write-Host "Scan Count: " $ScanCount
 	$ScanCount++
 }
+
+
+# clean up and suspend compute VMs
+while($POComputeVMcount -gt 0)
+{
+	# suspend if the capacity is not sufficent 
+	$POComputeVMcount-- #decrease powered on VMs by 1	
+	$CurrVMName = $ComputeVMbaseName + $POComputeVMcount.ToString($ComputeCountFormat)
+	$ComputeName = Get-VM $CurrVMName
+	if($ComputeName.powerState -eq "PoweredOn"){
+		Suspend-VMGuest $ComputeName
+		Start-Sleep -s 5
+		write-Host "Suspend VM: " $ComputeName
+	}
+	else {write-Host "VM already suspended: " $ComputeName}					
+}
+Write-Host "Script finished, Good-bye"
