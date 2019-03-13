@@ -1,6 +1,10 @@
 # VDIbyDayComputeOtherwise
 Script that provides the logic to do VDI by day and Compute by night (Or whenever else resources are free)
 
+You can read more about this script here: https://www.wondernerd.net/blog/scripting-vdi-by-day-and-compute-by-night/
+
+I built and tested this function on VMware PowerCLI 11.0.0 build 10380590 and on PowerShell 5.1.14409.1005. It should be backwards compatible several generations back to the point that the vGPU device backing was added in PowerCLI. Though I’m not sure when that was. 
+
 This is a fairly easy script to use.
 
 It requires the latest push of my vGPU capacity function here: https://github.com/wondernerd/vGPUCapacity
@@ -24,8 +28,9 @@ Define your paramaters on lines 16 thourgh 29. Hopefully they are self explainit
 </pre>
 
 Once those modifications are done, time to prep the VMware environment
-Remember that unless the compute VMs are desktops this requires that you license the hosts with regular vSphere licensing.
-DO NOT USE VMware Horizon Licensing unless you are positive you meet the requirements.
+Now comes a VERY important part. Licensing!
+Take a look at your VMware Horizon licensing agreement. It probably says something like you can only use Horizon for virtual desktop instances...
+That means your compute VMs need to be desktops or you need to license your hosts as standard ESXi assets. I can't tell you which is best to do. You should work with the VMware Licensing team to determine the best course of action. It's up to you to make sure you fully comply with the terms of your license agreement. 
 
 Instantiate your compute VMs, in my example I named them "Compute###" 
 The script expects them to all follow a common naming state with numbers that will be put in a 000 format starting with VM 000
