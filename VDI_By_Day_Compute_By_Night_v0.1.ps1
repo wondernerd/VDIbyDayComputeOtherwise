@@ -1,14 +1,14 @@
 
 ###
 # VDI by day Compute by Night
-# version 0.1
+# version 0.2
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. 
 ###
 
 #Import vGPU capacity function
-. 'C:\Users\Administrator\Desktop\vGPU System Capacity v1_3.ps1'
+. 'C:\Users\Administrator\Desktop\vGPU System Capacity v1_5.ps1'
 
 
 #define the paramaters
@@ -19,13 +19,14 @@ $SpareVMcapacity = 1			#How many spare VMs should be able to be powered on
 # Compute Side
 $ComputeVMbaseName = "Compute"  #The base name of compute VMs, a three digit number will be added at the end
 $ComputeCountFormat = "000"		#The preceding zeros in the compute name, so the 6th VM would be Compute006
+$StartingVMnum = 1				#The starting VM number, for example 001 would be the first VM monitored 
 $MaxComputeVMs = 4				#Total Number of Compute VMs in use
 $ComputevGPUtype = "grid_p4-2q"	#Which vGPU is in the Compute VM (later I will detect this)
 
 # Opperations Side Varables
 $WorkingCluster = "Horizon"		#Name of the cluster that should be 
-$SecondsBetweenScans = 30		#How long will the program wait between scans
-$NumberOfScansToPreform = 10		#How many times should the scan be run 
+$SecondsBetweenScans = 10		#How long will the program wait between scans
+$NumberOfScansToPreform = 2		#How many times should the scan be run 
 
 
 
@@ -33,40 +34,53 @@ $NumberOfScansToPreform = 10		#How many times should the scan be run
 ###############################
 # Operational variables do not touch
 
-$vGPUslotsOpen = 0 				#How many vGPU VMs are currently on
-$POComputeVMcount = 0			#Number of powered on (PO) compute VMs
-$ScanCount = 0					#How Many times the scan has been run
-$CurrVMName = ""				#Current VM Name
+$vGPUslotsOpen = 0 							#How many vGPU VMs are currently on
+$POComputeVMcount = 0 + $StartingVMnum		#Number of powered on (PO) compute VMs
+$ScanCount = 0								#How Many times the scan has been run
+$CurrVMName = ""							#Current VM Name
 $ComputeSteadyState = 0
 #works on a Last In First Out (LIFO) process 
 
 
 
-#see what we already have running in the environment so we can start at the right spot.
-#assumes that VMs are on or off in order IE 1,2,3 are all powered on NOT 1,3,4 on
-$QuickCount = 0
-while($QuickCount -lt $MaxComputeVMs)
-{
-	$CurrVMName = $ComputeVMbaseName + $QuickCount.ToString($ComputeCountFormat)
-	write-Host "Checking VM: " $CurrVMName
-	$ComputeName = Get-VM $CurrVMName
-	if($ComputeName.powerState -eq "PoweredOn"){ 
-		$POComputeVMcount++
-		write-Host "VM already running: " $CurrVMName
-	}
-	$QuickCount++
-}
-
 
 While($ScanCount -le $NumberOfScansToPreform)
 {
+	#see what we already have running in the environment so we can start at the right spot.
+	#assumes that VMs are on or off in order IE 1,2,3 are all powered on NOT 1,3,4 on
+	$QuickCount = 0 + $StartingVMnum 
+	$POComputeVMcount = 0 + $StartingVMnum 
+	while($QuickCount -lt ($MaxComputeVMs + $StartingVMnum))
+	{
+		$CurrVMName = $ComputeVMbaseName + $QuickCount.ToString($ComputeCountFormat)
+		write-Host "Checking VM: " $CurrVMName
+		$ComputeName = Get-VM $CurrVMName
+		#write-Host "VM power state: " $ComputeName.powerState
+		if($ComputeName.powerState -eq "PoweredOn"){ 
+			$POComputeVMcount++
+			#write-Host "VM already running: " $CurrVMName			
+		}
+		write-Host "VM " $CurrVMName " power state: " $ComputeName.powerState
+		$QuickCount++
+	}
+
+
 	while($ComputeSteadyState -eq 0) #Equlibrium while, it will keep going till the system is in the steady state desired
 	{
-		
 		$vGPUslotsOpen = vGPUSystemCapacity $ComputevGPUtype $WorkingCluster "connected" #Make sure there is room to prepare the compute VMs
 		Write-Host "vGPU Slots open: " $vGPUslotsOpen
-		if($vGPUslotsOpen -lt $SpareVMcapacity -and $POComputeVMcount -ge 0) #suspend to keep capacity till we can't power off any more
+		#Eventually add statement of hosts capacity
+		
+		write-Host "___________________________________________________________"
+		write-Host "vGPU Slots Open: " $vGPUslotsOpen " Spare Capacity: "  $SpareVMcapacity
+		write-Host "Compute Count: " $POComputeVMcount " Max VMs: " $MaxComputeVMs " Starting VMs: " $StartingVMnum
+		write-Host "___________________________________________________________"
+		
+		if($vGPUslotsOpen -lt $SpareVMcapacity -and $POComputeVMcount -ge (0 + $StartingVMnum)) #suspend to keep capacity till we can't power off any more
 		{
+			write-Host "-----------------------------------------------------------"
+			write-Host "Decreasing running workload VMs"
+			write-Host "vGPU slots open: " $vGPUslotsOpen " Required Spare Capacity: " $SpareVMcapacity
 			# suspend if the capacity is not sufficent 
 			$POComputeVMcount-- #decrease powered on VMs by 1	
 			$CurrVMName = $ComputeVMbaseName + $POComputeVMcount.ToString($ComputeCountFormat)
@@ -77,49 +91,66 @@ While($ScanCount -le $NumberOfScansToPreform)
 				Start-Sleep -s 5
 				write-Host "Suspend VM: " $ComputeName
 			}
-			else {write-Host "VM already suspended: " $ComputeName}					
+			else {write-Host "VM " $ComputeName " state: " $ComputeName.powerState}	
+			write-Host "-----------------------------------------------------------"			
 		}
-		elseif($vGPUslotsOpen -gt $SpareVMcapacity -and $POComputeVMcount -lt $MaxComputeVMs) #Resume/power on till we reach the maximum number of VMs
+		elseif($vGPUslotsOpen -gt $SpareVMcapacity -and $POComputeVMcount -lt ($MaxComputeVMs + $StartingVMnum)) #Resume/power on till we reach the maximum number of VMs
 		{
+			write-Host "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+			write-Host "Increaseing running workload VMs"
+			write-Host "vGPU slots open: " $vGPUslotsOpen " Required Spare Capacity: " $SpareVMcapacity
 			# start or resume next Compute VM
 			$CurrVMName = $ComputeVMbaseName + $POComputeVMcount.ToString($ComputeCountFormat)
 			$ComputeName = Get-VM $CurrVMName
 			if ($ComputeName.powerState -eq "PoweredOff" -or $ComputeName.powerState -eq "Suspended"){
+				write-Host "Changing " $ComputeName " from " $ComputeName.powerState " to PoweredOn"
 				Start-VM $ComputeName
-				write-Host "Resume VM: " $ComputeName
+				write-Host "Increased running workload VM with: " $ComputeName
 			}
 			else {write-Host "VM already started: " $ComputeName}
-			$POComputeVMcount++ #decrease powered on VMs by 1 placed here so it moves passed VMs already powered on
+			$POComputeVMcount++ #increase powered on VMs by 1 placed here so it moves passed VMs already powered on
 			#$vGPUslotsOpen = vGPUSystemCapacity $ComputevGPUtype $WorkingCluster "connected" #Make sure there is room to prepare the compute VMs
+			write-Host "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
 		}
 		else
 		{
 			#Cant do anything break the loop
+			write-Host "==========================================================="
 			$ComputeSteadyState = 1
 			write-host "Reached Steady State"
+			write-Host "==========================================================="
 		}
 	}
 	$ComputeSteadyState = 0
-	write-Host "Starting Sleep"
+	
+	write-Host ":::::::::::::::::::::::::::::::::::::::::::::::::::::::::::"
+	write-Host "Starting Sleep for: " $SecondsBetweenScans " Seconds"
 	Start-Sleep -s $SecondsBetweenScans #sleep for amount of time then resume
-	Write-Host "out of sleep "
+	Write-Host "Finished sleep"
 	Write-Host "Scan Count: " $ScanCount
 	$ScanCount++
 }
 
-
 # clean up and suspend compute VMs
-while($POComputeVMcount -gt 0)
+write-Host "***********************************************************"
+write-Host "Starting clean up..." $POComputeVMcount
+while($POComputeVMcount -gt (0 + $StartingVMnum))
 {
+	$POComputeVMcount-- #decrease powered on VMs by 1
 	# suspend if the capacity is not sufficent 
-	$POComputeVMcount-- #decrease powered on VMs by 1	
+	write-Host "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
 	$CurrVMName = $ComputeVMbaseName + $POComputeVMcount.ToString($ComputeCountFormat)
+	write-Host "Cleaning up: " $CurrVMName	
 	$ComputeName = Get-VM $CurrVMName
 	if($ComputeName.powerState -eq "PoweredOn"){
+		write-Host "Starting suspend of " $ComputeName
 		Suspend-VMGuest $ComputeName
 		Start-Sleep -s 5
 		write-Host "Suspend VM: " $ComputeName
 	}
-	else {write-Host "VM already suspended: " $ComputeName}					
+	else {write-Host "VM already stopped: " $ComputeName}	
+	write-Host "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+				
 }
+write-Host "***********************************************************"
 Write-Host "Script finished, Good-bye"
