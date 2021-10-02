@@ -7,8 +7,12 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. 
 ###
 
+#Assumes you have already connected to the vCenter. If adjust the following line and uncomment.
+#Connect-VIServer -server vsa01.YourDomain.local -user administrator@vSphere.local -password Passw0rd!
+
+#UPDATE WITH CORRECT PATH
 #Import vGPU capacity function
-. 'C:\Users\Administrator\Desktop\vGPU System Capacity v1_5.ps1'
+. 'C:\Users\UserName\Desktop\vGPUcapacity.ps1'
 
 
 #define the paramaters
@@ -26,7 +30,7 @@ $ComputevGPUtype = "grid_p4-2q"	#Which vGPU is in the Compute VM (later I will d
 # Opperations Side Varables
 $WorkingCluster = "Horizon"		#Name of the cluster that should be 
 $SecondsBetweenScans = 10		#How long will the program wait between scans
-$NumberOfScansToPreform = 2		#How many times should the scan be run 
+$NumberOfScansToPreform = 10		#How many times should the scan be run 
 
 
 
@@ -144,7 +148,7 @@ while($POComputeVMcount -gt (0 + $StartingVMnum))
 	$ComputeName = Get-VM $CurrVMName
 	if($ComputeName.powerState -eq "PoweredOn"){
 		write-Host "Starting suspend of " $ComputeName
-		Suspend-VMGuest $ComputeName
+		Suspend-VMGuest $ComputeName 
 		Start-Sleep -s 5
 		write-Host "Suspend VM: " $ComputeName
 	}
